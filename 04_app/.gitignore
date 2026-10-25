@@ -1,0 +1,6 @@
+node_modules
+.next
+.env
+.env.local
+etl/rechazados.csv
+__pycache__
