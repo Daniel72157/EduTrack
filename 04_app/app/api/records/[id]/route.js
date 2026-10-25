@@ -27,3 +27,14 @@ export async function PATCH(req, { params }) {
     return Response.json({ ok: false, frenadoPor: "base", regla: err.constraint || null, detalle: err.message }, { status: 422 });
   }
 }
+
+// OPERACIÓN 5 (D de CRUD): eliminar un registro académico por record_id.
+export async function DELETE(_req, { params }) {
+  try {
+    const { rows } = await pool.query("DELETE FROM academic_records WHERE record_id = $1 RETURNING record_id, student_id", [params.id]);
+    if (!rows.length) return Response.json({ ok: false, mensaje: "record_id no existe" }, { status: 404 });
+    return Response.json({ ok: true, tipo: "registro", id: rows[0].record_id, student_id: rows[0].student_id });
+  } catch (err) {
+    return Response.json({ ok: false, frenadoPor: "base", regla: err.constraint || null, detalle: err.message }, { status: 422 });
+  }
+}

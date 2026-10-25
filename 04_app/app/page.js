@@ -64,7 +64,7 @@ function Errores({ r }) {
     return <Aviso tipo="warn" titulo="La aplicación frenó el envío (no llegó a la base)"><ul style={{ margin: 0, paddingLeft: 18 }}>{r.errores.map((e) => <li key={e}>{e}</li>)}</ul></Aviso>;
   if (r.frenadoPor === "base")
     return <Aviso tipo="err" titulo="La base de datos rechazó la operación">
-      <div>{REGLAS[r.regla] || "Se violó una regla de la base."} {r.regla && <code>({r.regla})</code>}</div>
+      <div>{REGLAS[r.regla] || (r.regla ? "Se violó una regla de la base." : "La base no pudo completar la operación.")} {r.regla && <code>({r.regla})</code>}</div>
       <div style={{ marginTop: 4 }}>No se guardó nada. {r.detalle && <small style={{ color: "#57606a" }}>Detalle técnico: {r.detalle}</small>}</div>
     </Aviso>;
   return <Aviso tipo="err" titulo={r.mensaje || "Ocurrió un error inesperado"}>{r.detalle}</Aviso>;
@@ -86,13 +86,40 @@ export default function Home() {
     previous_exam_score: 70, attendance_percentage: 90, study_hours_per_day: 3, sleep_hours: 7, exam_score: 80 });
   const [r1, setR1] = useState(null), [r2, setR2] = useState(null), [r3, setR3] = useState(null), [r4, setR4] = useState(null);
   const [id, setId] = useState("STU_000001"), [rid, setRid] = useState(""), [nota, setNota] = useState(90);
+  const [r5, setR5] = useState(null), [tipoDel, setTipoDel] = useState("registro"), [idDel, setIdDel] = useState("");
   const [cargando, setCargando] = useState("");
   const correr = async (n, set, fn) => { setCargando(n); set(null); set(await fn()); setCargando(""); };
+
+  // D de CRUD: borra de verdad la fila en la BD (pide confirmación antes)
+  const eliminar = async (tipo, ident, origen) => {
+    const txt = tipo === "estudiante" ? `¿Eliminar al estudiante ${ident} y TODOS sus registros académicos? No se puede deshacer.`
+                                      : `¿Eliminar el registro académico ${ident}? No se puede deshacer.`;
+    if (!window.confirm(txt)) return;
+    setCargando("5"); setR5(null);
+    const url = tipo === "estudiante" ? `/api/students/${encodeURIComponent(ident)}` : `/api/records/${encodeURIComponent(ident)}`;
+    const res = await llamar(url, "DELETE");
+    setR5({ ...res, origen });
+    if (res.ok && origen === "2") {
+      if (tipo === "estudiante") setR2(null);
+      else setR2(await llamar(`/api/students/${encodeURIComponent(id.trim())}`, "GET"));
+    }
+    setCargando("");
+  };
+  const ResEliminar = ({ origen }) => {
+    if (!r5 || r5.origen !== origen) return null;
+    if (r5.ok) return (
+      <Aviso tipo="ok" titulo={r5.tipo === "estudiante" ? `Estudiante ${r5.id} eliminado con éxito` : `Registro ${r5.id} eliminado con éxito`}>
+        {r5.tipo === "estudiante" ? `Se borró de la base junto con ${r5.registrosEliminados} registro(s) académico(s).` : `Se borró de la base el registro del estudiante ${r5.student_id}.`}
+      </Aviso>
+    );
+    if (r5.http === 404) return <Aviso tipo="warn" titulo="No se eliminó nada: no existe ese ID">Revisa el ID e inténtalo de nuevo.</Aviso>;
+    return <Errores r={r5} />;
+  };
 
   return (
     <main>
       <h1 style={{ marginBottom: 4 }}>EduTrack</h1>
-      <p style={{ marginTop: 0, color: "#57606a" }}>Rendimiento académico · Next.js + Supabase (PostgreSQL)</p>
+      <p style={{ marginTop: 0, color: "#57606a" }}>Rendimiento académico · CRUD con Next.js + Supabase (PostgreSQL)</p>
 
       {/* 1 */}
       <section style={box}>
@@ -132,15 +159,18 @@ export default function Home() {
           <>
             <Aviso tipo="info" titulo={`Estudiante ${r2.registros[0].student_id} encontrado`}>{r2.registros.length} registro(s) académico(s)</Aviso>
             <Tabla datos={r2.registros[0]} campos={["student_id", "age", "gender", "education_level", "school_type", "urban_rural"]} />
+            <button style={{ ...btn(false), background: "#c62828", marginTop: 12 }} disabled={!!cargando} onClick={() => eliminar("estudiante", r2.registros[0].student_id, "2")}>Eliminar estudiante y sus registros</button>
             {r2.registros.map((x) => (
               <div key={x.record_id} style={{ border: "1px solid #d0d7de", borderRadius: 8, padding: 12, marginTop: 12 }}>
                 <b>Periodo {x.academic_period}</b> · <Insignia nota={x.exam_score} grado={x.performance_grade} /> · {fmt(x.pass_status)} · Nivel {fmt(x.performance_level)}
                 <Tabla datos={x} campos={["record_id", "previous_exam_score", "attendance_percentage", "study_hours_per_day", "sleep_hours"]} />
-                <button style={{ ...btn(false), background: "#57606a", marginTop: 8 }} onClick={() => setRid(String(x.record_id))}>Usar este registro en la operación 3</button>
+                <button style={{ ...btn(false), background: "#57606a", marginTop: 8 }} onClick={() => setRid(String(x.record_id))}>Usar este registro en la operación 3</button>{" "}
+                <button style={{ ...btn(false), background: "#c62828", marginTop: 8 }} disabled={!!cargando} onClick={() => eliminar("registro", x.record_id, "2")}>Eliminar este registro</button>
               </div>
             ))}
           </>
         ) : r2.http === 404 ? <Aviso tipo="warn" titulo="No se encontró ningún estudiante con ese ID">Revisa que esté escrito como STU_000001.</Aviso> : <Errores r={r2} />)}
+        <ResEliminar origen="2" />
       </section>
 
       {/* 3 */}
@@ -179,6 +209,23 @@ export default function Home() {
             </ol>
           </Aviso>
         ) : <Errores r={r4} />)}
+      </section>
+
+      {/* 5 */}
+      <section style={box}>
+        <h2 style={{ marginTop: 0 }}>5 · Eliminar</h2>
+        <p style={{ marginTop: 0 }}>Borra la fila directamente de la base de datos (sin eliminado lógico).</p>
+        <label style={{ fontSize: 14 }}>¿Qué quieres eliminar?
+          <select style={inp} value={tipoDel} onChange={(e) => { setTipoDel(e.target.value); setIdDel(""); }}>
+            <option value="registro">Un registro académico (por ID de registro)</option>
+            <option value="estudiante">Un estudiante y todos sus registros (por ID de estudiante)</option>
+          </select>
+        </label>
+        <input style={inp} value={idDel} onChange={(e) => setIdDel(e.target.value)} placeholder={tipoDel === "registro" ? "Ej: 200001" : "Ej: STU_W000001"} />
+        <button style={{ ...btn(cargando === "5"), background: cargando === "5" ? "#9aa5b1" : "#c62828" }} disabled={!!cargando || !idDel.trim()} onClick={() => eliminar(tipoDel, idDel.trim(), "5")}>
+          {cargando === "5" ? "Eliminando…" : "Eliminar"}
+        </button>
+        <ResEliminar origen="5" />
       </section>
     </main>
   );

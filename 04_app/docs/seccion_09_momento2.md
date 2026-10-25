@@ -38,3 +38,6 @@ Conclusión: **las dos**, a propósito (defensa en profundidad). Evidencia: capt
 
 ## 9.9 Siguiente paso (Momento 3)
 Límite: no hay autenticación; cualquiera con la URL puede escribir. Mejora: Supabase Auth + Row Level Security por rol (docente/administrador), más paginación y consultas agregadas (promedio por grupo) para el volumen de 9.6.
+
+## Nota: eliminación (D del CRUD)
+La app también elimina: `DELETE /api/records/:record_id` borra un registro académico y `DELETE /api/students/:id` borra al estudiante. Es eliminado físico (la fila desaparece de la BD). Los registros del estudiante se borran solos por `ON DELETE CASCADE` de la FK, así que nunca quedan registros sin estudiante. La pantalla pide confirmación antes de borrar, porque la acción no se puede deshacer.

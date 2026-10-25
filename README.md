@@ -34,12 +34,13 @@ npm run dev                   # http://localhost:3000
 3. Settings > Environment Variables: `DATABASE_URL` = cadena del Transaction pooler (6543).
 4. Deploy. Nunca subas `.env.local` (ya está en `.gitignore`).
 
-## Las 4 operaciones
+## Operaciones (CRUD + rechazo)
 | # | Qué | Ruta |
 |---|-----|------|
 | 1 | Registrar estudiante + registro (1 transacción) | `POST /api/students` |
 | 2 | Consultar rendimiento | `GET /api/students/:id` |
 | 3 | Actualizar registro | `PATCH /api/records/:record_id` |
 | 4 | Rechazo exam_score=150 (la base lo frena, ROLLBACK) | `POST /api/demo-rechazo` |
+| 5 | Eliminar estudiante (con sus registros) o un registro | `DELETE /api/students/:id` · `DELETE /api/records/:record_id` |
 
 Todo usa consultas parametrizadas (`$1, $2…`) y la clave viene de `DATABASE_URL`.
