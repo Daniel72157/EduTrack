@@ -1,5 +1,7 @@
 """EduTrack · ETL: CSV original -> limpiar -> validar -> guardar en students / academic_records.
 Idempotente: correrlo 2 veces no duplica nada (ON CONFLICT DO NOTHING).
+Requiere haber ejecutado sql/01_schema.sql y sql/03_roles_auditoria.sql (los reportes importados quedan como
+asignatura "General", evaluación "Examen").
 Uso:  DATABASE_URL=postgresql://... python etl/etl.py [ruta_csv]
 """
 import os, sys, io
@@ -68,13 +70,13 @@ def copiar(cur, tabla, frame, cols):
 
 with psycopg.connect(os.environ["DATABASE_URL"]) as conn, conn.cursor() as cur:
     cur.execute("CREATE TEMP TABLE stg_s (LIKE students) ON COMMIT DROP")
-    cur.execute("CREATE TEMP TABLE stg_r (LIKE academic_records) ON COMMIT DROP")
+    cur.execute("CREATE TEMP TABLE stg_r (LIKE academic_records INCLUDING DEFAULTS) ON COMMIT DROP")
     cur.execute("ALTER TABLE stg_r DROP COLUMN record_id")
     copiar(cur, "stg_s", ok, STUDENT_COLS)
     copiar(cur, "stg_r", ok, RECORD_COLS)
     cur.execute(f"INSERT INTO students ({','.join(STUDENT_COLS)}) SELECT {','.join(STUDENT_COLS)} FROM stg_s ON CONFLICT (student_id) DO NOTHING")
     nuevos_s = cur.rowcount
-    cur.execute(f"INSERT INTO academic_records ({','.join(RECORD_COLS)}) SELECT {','.join(RECORD_COLS)} FROM stg_r ON CONFLICT (student_id, academic_period) DO NOTHING")
+    cur.execute(f"INSERT INTO academic_records ({','.join(RECORD_COLS)}) SELECT {','.join(RECORD_COLS)} FROM stg_r ON CONFLICT (student_id, academic_period, subject, evaluation) DO NOTHING")
     nuevos_r = cur.rowcount
     conn.commit()
     cur.execute("SELECT (SELECT count(*) FROM students),(SELECT count(*) FROM academic_records)")

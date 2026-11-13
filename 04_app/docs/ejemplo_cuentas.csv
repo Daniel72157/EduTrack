@@ -1,0 +1,11 @@
+student_id,full_name,email
+STU_000010,Camila Torres,camila.torres@colegio.edu
+STU_000011,Andrés Gómez,andres.gomez@colegio.edu
+STU_000012,Laura Peña,laura.pena.colegio.edu
+STU_000013,,david.ruiz@colegio.edu
+STU_999999,Sofía Vargas,sofia.vargas@colegio.edu
+STU_000015,Mateo <script>alert(1)</script>,mateo@colegio.edu
+STU_000011,Andrés Gómez,otro.correo@colegio.edu
+abc,Pedro Ramos,pedro@colegio.edu
+STU_000016,Elena Ríos,camila.torres@colegio.edu
+STU_000017,Julián Mora,

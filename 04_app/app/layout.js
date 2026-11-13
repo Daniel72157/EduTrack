@@ -1,6 +1,9 @@
-export const metadata = { title: "EduTrack", description: "Rendimiento académico de estudiantes" };
+import "./globals.css";
+
+export const metadata = { title: "EduTrack", description: "Seguimiento académico con roles, aprobaciones y auditoría" };
+
 export default function RootLayout({ children }) {
   return (
-    <html lang="es"><body style={{ fontFamily: "system-ui, sans-serif", maxWidth: 860, margin: "0 auto", padding: 16, lineHeight: 1.4 }}>{children}</body></html>
+    <html lang="es"><body>{children}</body></html>
   );
 }
